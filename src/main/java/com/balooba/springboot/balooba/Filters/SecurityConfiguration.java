@@ -1,5 +1,6 @@
 package com.balooba.springboot.balooba.Filters;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -18,6 +19,11 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
+    @Value("${springdoc.swagger-ui.path}")
+    private String SWAGGER_UI_URL;
+    @Value("${springdoc.api-docs.path}")
+    private String OPEN_API_URL;
+
     private final AuthenticationProvider authenticationProvider;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -31,7 +37,11 @@ public class SecurityConfiguration {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(
+                                "/auth/**",
+                                "/swagger-ui-custom.html",
+                                "/swagger-ui/**",
+                                "/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -4,7 +4,7 @@ import com.balooba.springboot.balooba.Entities.Base.BaseTrackingEntity;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Set;
+import java.util.List;
 
 @Entity
 @Table(name="properties")
@@ -23,7 +23,7 @@ public class Property extends BaseTrackingEntity {
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;
 
-    @OneToMany(mappedBy = "property")
-    private Set<PropertyFile> images;
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PropertyFiles> images;
 
 }

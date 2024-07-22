@@ -20,7 +20,4 @@ public class File extends BaseTrackingEntity {
     private String name;
     private FileType fileType;
 
-    @OneToMany(mappedBy = "file")
-    private Set<PropertyFile> propertyFiles;
-
 }

@@ -1,81 +1,45 @@
 package com.balooba.springboot.balooba.Services;
 
+import com.balooba.springboot.balooba.DTOs.Requests.FileRequest;
 import com.balooba.springboot.balooba.DTOs.Responses.FileResponse;
 import com.balooba.springboot.balooba.Entities.Enums.FileType;
 import com.balooba.springboot.balooba.Mappers.FileMapper;
 import com.balooba.springboot.balooba.Repositories.FileRepository;
 import com.balooba.springboot.balooba.Services.Interfaces.FileService;
-import jakarta.annotation.PostConstruct;
+import com.balooba.springboot.balooba.Services.Interfaces.S3Service;
 import org.apache.coyote.BadRequestException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-import software.amazon.awssdk.services.s3.model.StorageClass;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 @Service
 public class FileServiceImpl implements FileService {
 
-    @Value("${aws.s3.bucket-name}")
-    private String BUCKET_NAME;
-    @Value("${aws.s3.access-key}")
-    private String ACCESS_KEY;
-    @Value("${aws.s3.secret-key}")
-    private String SECRET_KEY;
-
-    private S3Client client;
     private final FileRepository fileRepository;
     private final FileMapper fileMapper;
+    private final S3Service s3Service;
 
-    public FileServiceImpl(FileRepository fileRepository, FileMapper fileMapper) {
+    public FileServiceImpl(FileRepository fileRepository, FileMapper fileMapper, S3Service s3Service) {
         this.fileRepository = fileRepository;
         this.fileMapper = fileMapper;
-    }
-
-    @PostConstruct
-    private void initS3() {
-        AwsBasicCredentials awsBasicCredentials = AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY);
-        StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(awsBasicCredentials);
-
-        client = S3Client.builder()
-                .region(Region.US_EAST_2)
-                .credentialsProvider(credentialsProvider)
-                .build();
+        this.s3Service = s3Service;
     }
 
     @Override
-    public FileResponse upload(MultipartFile file) {
+    public FileResponse upload(MultipartFile file, String path, Boolean executeSave) {
         try {
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(BUCKET_NAME)
-                    .key(file.getOriginalFilename())
-                    .build();
-
-            File finalFileToUpload = convertMultifileToFile(file);
-            client.putObject(request, RequestBody.fromFile(finalFileToUpload));
-            String url = client.utilities().getUrl(builder -> builder.bucket(BUCKET_NAME).key(finalFileToUpload.getPath())).toExternalForm();
-
-            FileResponse response = new FileResponse();
-            response.setUrl(url);
-            response.setName(finalFileToUpload.getName());
-            response.setSize((double)file.getSize());
+            File fileToUpload = convertMultifileToFile(file);
+            FileResponse response = s3Service.uploadObject(fileToUpload, path);
 
             com.balooba.springboot.balooba.Entities.File fileToSave = fileMapper.fileResponseToFile(response);
             fileToSave.setFileType(getFileType(file.getContentType()));
-            fileRepository.save(fileToSave);
+            if (executeSave) {
+                fileRepository.save(fileToSave);
+            }
 
             return response;
         } catch (IOException exception) {
@@ -98,7 +62,7 @@ public class FileServiceImpl implements FileService {
         return convertedFile;
     }
 
-    private FileType getFileType(String contentType) {
+    public FileType getFileType(String contentType) {
         if (contentType == null) {
             return null;
         }
