@@ -1,11 +1,12 @@
 package com.balooba.springboot.balooba.Services;
 
-import com.balooba.springboot.balooba.DTOs.Requests.RegisterRequest;
-import com.balooba.springboot.balooba.DTOs.Responses.RegisterResponse;
+import com.balooba.springboot.balooba.DTOs.Responses.UserResponse;
 import com.balooba.springboot.balooba.Entities.User;
+import com.balooba.springboot.balooba.Exceptions.GenericException;
 import com.balooba.springboot.balooba.Mappers.UserMapper;
 import com.balooba.springboot.balooba.Repositories.UserRepository;
 import com.balooba.springboot.balooba.Services.Interfaces.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,14 +26,8 @@ public class UserServiceImpl implements UserService {
         this.userMapper = userMapper;
     }
 
-    public RegisterResponse createUser(RegisterRequest dto) {
-        User user = this.userMapper.registerDTOToUser(dto);
-        this.userRepository.save(user);
-        return this.userMapper.userToRegisterResponse(user);
-    }
-
-    public User getUserById(int id) {
-        return this.userRepository.findById((long) id).orElse(null);
+    public User getUserById(Long id) {
+        return this.userRepository.findById(id).orElse(null);
     }
 
     public User getAuthUser() {
@@ -52,4 +47,19 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByEmail(username).orElse(null);
     }
 
+    public UserResponse getUser() {
+        User user = getAuthUser();
+        return userMapper.userToUserResponse(user);
+    }
+
+    public UserResponse getUser(Long id) {
+        if (id == null) {
+            throw new GenericException("User ID is not valid", HttpStatus.BAD_REQUEST);
+        }
+        User user = getUserById(id);
+        if (user == null) {
+            throw new GenericException("User does not exist", HttpStatus.BAD_REQUEST);
+        }
+        return userMapper.userToUserResponse(user);
+    }
 }

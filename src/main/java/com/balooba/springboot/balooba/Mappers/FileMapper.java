@@ -9,9 +9,9 @@ import org.mapstruct.factory.Mappers;
 @Mapper(componentModel = "spring")
 public interface FileMapper {
 
-    FileMapper instance = Mappers.getMapper(FileMapper.class);
-
     @Mapping(target = "id", ignore = true)
     File fileResponseToFile(FileResponse response);
+
+    FileResponse toDto(File file);
 
 }

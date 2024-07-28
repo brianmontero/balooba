@@ -3,11 +3,13 @@ package com.balooba.springboot.balooba.Services;
 import com.balooba.springboot.balooba.DTOs.Requests.FileRequest;
 import com.balooba.springboot.balooba.DTOs.Responses.FileResponse;
 import com.balooba.springboot.balooba.Entities.Enums.FileType;
+import com.balooba.springboot.balooba.Exceptions.GenericException;
 import com.balooba.springboot.balooba.Mappers.FileMapper;
 import com.balooba.springboot.balooba.Repositories.FileRepository;
 import com.balooba.springboot.balooba.Services.Interfaces.FileService;
 import com.balooba.springboot.balooba.Services.Interfaces.S3Service;
 import org.apache.coyote.BadRequestException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,7 +45,7 @@ public class FileServiceImpl implements FileService {
 
             return response;
         } catch (IOException exception) {
-            return null;
+            throw new GenericException(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

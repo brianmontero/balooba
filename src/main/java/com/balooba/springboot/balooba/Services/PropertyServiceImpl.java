@@ -2,6 +2,7 @@ package com.balooba.springboot.balooba.Services;
 
 import com.balooba.springboot.balooba.DTOs.Requests.PropertyRequest;
 import com.balooba.springboot.balooba.DTOs.Responses.FileResponse;
+import com.balooba.springboot.balooba.DTOs.Responses.PropertyResponse;
 import com.balooba.springboot.balooba.Entities.Enums.S3FolderPaths;
 import com.balooba.springboot.balooba.Entities.File;
 import com.balooba.springboot.balooba.Entities.Property;
@@ -9,6 +10,7 @@ import com.balooba.springboot.balooba.Entities.PropertyFiles;
 import com.balooba.springboot.balooba.Entities.User;
 import com.balooba.springboot.balooba.Mappers.FileMapper;
 import com.balooba.springboot.balooba.Mappers.PropertyMapper;
+import com.balooba.springboot.balooba.Repositories.FileRepository;
 import com.balooba.springboot.balooba.Repositories.PropertyFilesRepository;
 import com.balooba.springboot.balooba.Repositories.PropertyRepository;
 import com.balooba.springboot.balooba.Services.Interfaces.FileService;
@@ -22,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PropertyServiceImpl implements PropertyService {
@@ -32,6 +35,7 @@ public class PropertyServiceImpl implements PropertyService {
     private final FileService fileService;
     private final FileMapper fileMapper;
     private final PropertyFilesRepository propertyFilesRepository;
+    private final FileRepository fileRepository;
 
     public PropertyServiceImpl(
             PropertyRepository propertyRepository,
@@ -39,7 +43,8 @@ public class PropertyServiceImpl implements PropertyService {
             PropertyMapper propertyMapper,
             FileService fileService,
             FileMapper fileMapper,
-            PropertyFilesRepository propertyFilesRepository
+            PropertyFilesRepository propertyFilesRepository,
+            FileRepository fileRepository
     ) {
         this.propertyRepository = propertyRepository;
         this.userService = userService;
@@ -47,6 +52,7 @@ public class PropertyServiceImpl implements PropertyService {
         this.fileService = fileService;
         this.fileMapper = fileMapper;
         this.propertyFilesRepository = propertyFilesRepository;
+        this.fileRepository = fileRepository;
     }
 
     public void create(PropertyRequest dto, List<MultipartFile> files) {
@@ -64,6 +70,36 @@ public class PropertyServiceImpl implements PropertyService {
         property.setImages(images);
 
         this.propertyRepository.save(property);
+    }
+
+    @Override
+    public List<PropertyResponse> getAllProperties() {
+        List<Property> properties = propertyRepository.findAll();
+
+        ArrayList<PropertyResponse> result = new ArrayList<PropertyResponse>();
+        for (Property property : properties) {
+            PropertyResponse response = propertyMapper.propertyToPropertyResponse(property);
+            ArrayList<FileResponse> newFiles = new ArrayList<FileResponse>();
+            for (FileResponse file : response.getImages()) {
+                // TODO: refactor this, not scalable.
+                newFiles.add(getPropertyFilesData(file));
+            }
+            response.setImages(newFiles);
+            result.add(response);
+        }
+        return result;
+    }
+
+    private FileResponse getPropertyFilesData(FileResponse file) {
+        Optional<PropertyFiles> propertyFile = propertyFilesRepository.findById(file.getId());
+        if (!propertyFile.isPresent()) {
+            return null;
+        }
+        Optional<File> result = fileRepository.findById(propertyFile.get().getFile().getId());
+        if (!result.isPresent()) {
+            return null;
+        }
+        return fileMapper.toDto(result.get());
     }
 
     private List<PropertyFiles> processImagesUpload(Property property, List<MultipartFile> files) {
@@ -92,5 +128,7 @@ public class PropertyServiceImpl implements PropertyService {
 
         return images;
     }
+
+
 
 }

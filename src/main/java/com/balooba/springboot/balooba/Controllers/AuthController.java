@@ -1,5 +1,6 @@
 package com.balooba.springboot.balooba.Controllers;
 
+import com.balooba.springboot.balooba.DTOs.Base.ApiResponse;
 import com.balooba.springboot.balooba.DTOs.Requests.LoginRequest;
 import com.balooba.springboot.balooba.DTOs.Requests.RegisterRequest;
 import com.balooba.springboot.balooba.DTOs.Responses.LoginResponse;
@@ -19,12 +20,14 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest dto) {
-        return ResponseEntity.ok(authService.signUp(dto));
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(@RequestBody RegisterRequest dto) {
+        RegisterResponse result = authService.signUp(dto);
+        return ResponseEntity.ok(ApiResponse.send(result));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest dto) {
-        return ResponseEntity.ok(authService.logIn(dto));
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest dto) {
+        LoginResponse result = authService.logIn(dto);
+        return ResponseEntity.ok(ApiResponse.send(result));
     }
 }
